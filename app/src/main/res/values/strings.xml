@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">BarCode</string>
+    <string name="we_need_camera">Camera access is needed to scan your barcode.</string>
+</resources>
