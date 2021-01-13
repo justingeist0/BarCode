@@ -45,6 +45,7 @@ class BarCodeActivity : AppCompatActivity() {
     private fun tellUserWeNeedCamera() {
         Toast.makeText(this, getText(R.string.we_need_camera), Toast.LENGTH_SHORT)
                 .show()
+        acquireCameraPermission()
     }
 
     private fun initGoogleVisionScanner() {
@@ -54,16 +55,6 @@ class BarCodeActivity : AppCompatActivity() {
                 .build()
         mBarcodeDetector.setProcessor(googleVisionProcessor)
         mBinding.surfaceView.holder.addCallback(surfaceCallback)
-        showInstructions()
-    }
-
-    private fun showInstructions() {
-        mBinding.tvBarCodeInstructions.translationY = mBinding.root.height/4f
-        mBinding.tvBarCodeInstructions
-            .animate()
-            .translationY(0f)
-            .alpha(1f)
-            .start()
     }
 
     private val googleVisionProcessor = object : Detector.Processor<Barcode> {
@@ -80,9 +71,21 @@ class BarCodeActivity : AppCompatActivity() {
 
     private val surfaceCallback = object : SurfaceHolder.Callback {
         @SuppressLint("MissingPermission")
-        override fun surfaceCreated(holder: SurfaceHolder) { mCameraSource.start(holder) }
+        override fun surfaceCreated(holder: SurfaceHolder) { mCameraSource.start(holder); showInstructions() }
         override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
         override fun surfaceDestroyed(holder: SurfaceHolder) { mCameraSource.stop() }
+    }
+
+    private fun showInstructions() {
+        with(mBinding) {
+            tvBarCodeInstructions.translationY = root.height / 4f
+            tvBarCodeInstructions
+                .animate()
+                .translationY(0f)
+                .alpha(1f)
+                .setDuration(2000)
+                .start()
+        }
     }
 
     private fun handleRawBarcodeResults(result: Array<String>) {
