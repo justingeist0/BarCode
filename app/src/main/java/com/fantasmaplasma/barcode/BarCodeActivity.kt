@@ -3,9 +3,15 @@ package com.fantasmaplasma.barcode
 import androidx.appcompat.app.AppCompatActivity
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.hardware.Camera
+import android.hardware.camera2.CameraManager
+import android.os.Build
 import android.os.Bundle
 import android.view.SurfaceHolder
+import android.view.View
 import android.widget.Toast
 import androidx.core.util.isNotEmpty
 import com.fantasmaplasma.barcode.databinding.ActivityBarCodeBinding
@@ -29,6 +35,7 @@ class BarCodeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         mBinding = ActivityBarCodeBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
+        initHeader()
         acquireCameraPermission()
     }
 
@@ -45,7 +52,7 @@ class BarCodeActivity : AppCompatActivity() {
     private fun tellUserWeNeedCamera() {
         Toast.makeText(this, getText(R.string.we_need_camera), Toast.LENGTH_SHORT)
                 .show()
-        acquireCameraPermission()
+        finish()
     }
 
     private fun initGoogleVisionScanner() {
@@ -53,8 +60,21 @@ class BarCodeActivity : AppCompatActivity() {
         mCameraSource = CameraSource.Builder(this, mBarcodeDetector)
                 .setAutoFocusEnabled(true)
                 .build()
-        mBarcodeDetector.setProcessor(googleVisionProcessor)
         mBinding.surfaceView.holder.addCallback(surfaceCallback)
+        mBarcodeDetector.setProcessor(googleVisionProcessor)
+        initFlashBtn()
+    }
+
+    private val surfaceCallback = object : SurfaceHolder.Callback {
+        @SuppressLint("MissingPermission")
+        override fun surfaceCreated(holder: SurfaceHolder) {
+            //mCameraSource.start(holder)
+            showInstructions()
+        }
+        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+        override fun surfaceDestroyed(holder: SurfaceHolder) {
+            //mCameraSource.stop()
+        }
     }
 
     private val googleVisionProcessor = object : Detector.Processor<Barcode> {
@@ -69,22 +89,55 @@ class BarCodeActivity : AppCompatActivity() {
         }
     }
 
-    private val surfaceCallback = object : SurfaceHolder.Callback {
-        @SuppressLint("MissingPermission")
-        override fun surfaceCreated(holder: SurfaceHolder) { mCameraSource.start(holder); showInstructions() }
-        override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
-        override fun surfaceDestroyed(holder: SurfaceHolder) { mCameraSource.stop() }
+    private fun initHeader() {
+        actionBar?.title = ""
     }
+
+    private fun initFlashBtn() {
+        val isFlashAvailable = packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)
+        if (isFlashAvailable) {
+            mBinding.imgBtnBarCodeFlash.apply {
+                visibility = View.VISIBLE
+                setOnClickListener(getBtnFlashListener())
+            }
+        }
+    }
+
+    private fun getBtnFlashListener(): View.OnClickListener {
+        var isFlashOn = false
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
+            val cameraId = cameraManager.cameraIdList[0]
+            return View.OnClickListener {
+                isFlashOn = !isFlashOn
+                cameraManager.setTorchMode(cameraId, isFlashOn)
+            }
+        } else {
+            val camera = Camera.open()
+            val params = camera.parameters
+            return View.OnClickListener {
+                isFlashOn = !isFlashOn
+                camera.parameters = params.apply {
+                    flashMode =
+                            if (isFlashOn)
+                                Camera.Parameters.FLASH_MODE_TORCH
+                            else
+                                Camera.Parameters.FLASH_MODE_OFF
+                }
+            }
+        }
+    }
+
 
     private fun showInstructions() {
         with(mBinding) {
-            tvBarCodeInstructions.translationY = root.height / 4f
+            tvBarCodeInstructions.translationY = root.height / 8f
             tvBarCodeInstructions
-                .animate()
-                .translationY(0f)
-                .alpha(1f)
-                .setDuration(2000)
-                .start()
+                    .animate()
+                    .translationY(0f)
+                    .alpha(1f)
+                    .setDuration(2000)
+                    .start()
         }
     }
 

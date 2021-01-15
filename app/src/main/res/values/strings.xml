@@ -1,5 +1,5 @@
 <resources>
     <string name="app_name">BarCode</string>
     <string name="we_need_camera">Camera access is needed to scan the barcode.</string>
-    <string name="position_camera_directly_above_bar_code">Point your device at the bar code.</string>
+    <string name="position_camera_directly_above_bar_code">Point the camera at the bar code.</string>
 </resources>
